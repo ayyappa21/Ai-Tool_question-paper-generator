@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Question Paper Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        royal: {
+                            900: '#1e1b4b', // Deep Indigo
+                            800: '#312e81',
+                            700: '#4338ca',
+                        },
+                        gold: {
+                            400: '#fbbf24',
+                            500: '#f59e0b',
+                            600: '#d97706',
+                        }
+                    },
+                    fontFamily: {
+                        serif: ['"Playfair Display"', 'serif'],
+                        sans: ['"Lato"', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #0f172a;
+            background-image: radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), radial-gradient(at 50% 0%, hsla(225,39%,30%,1) 0, transparent 50%), radial-gradient(at 100% 0%, hsla(339,49%,30%,1) 0, transparent 50%);
+            color: #f8fafc;
+        }
+        .glass-panel {
+            background: rgba(30, 27, 75, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(251, 191, 36, 0.2);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+        }
+        .step-active {
+            border-color: #fbbf24;
+            color: #fbbf24;
+        }
+        .gold-gradient-text {
+            background: linear-gradient(to right, #fcd34d, #fbbf24, #d97706);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e1b4b; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4338ca; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #fbbf24; 
+        }
+        .paper-preview {
+            background: white;
+            color: black;
+            font-family: 'Times New Roman', Times, serif;
+            /* Reduced top padding to prevent empty space in PDF */
+            padding: 20px 40px 40px 40px; 
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+        .loader {
+            border-top-color: #fbbf24;
+            -webkit-animation: spinner 1.5s linear infinite;
+            animation: spinner 1.5s linear infinite;
+        }
+        @keyframes spinner {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="min-h-screen font-sans antialiased selection:bg-gold-500 selection:text-white flex flex-col">
+
+    <!-- Navbar -->
+    <nav class="w-full glass-panel sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-20">
+                <div class="flex items-center gap-3">
+                    <i class="fa-solid fa-microchip text-gold-400 text-3xl"></i>
+                    <span class="font-serif text-2xl font-bold tracking-wider text-white">AI Question Paper <span class="text-gold-400">Generator</span></span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-grow container mx-auto px-4 py-10 flex flex-col items-center">
+        
+        <!-- Header Section -->
+        <div class="text-center mb-12 max-w-3xl">
+            <h1 class="text-4xl md:text-5xl font-serif font-bold mb-4 gold-gradient-text">Automated Question Paper Generation</h1>
+            <p class="text-gray-300 text-lg">Upload your syllabus or previous papers, configure your blueprint, and let our AI craft a professional examination paper in seconds.</p>
+        </div>
+
+        <!-- Progress Steps -->
+        <div class="w-full max-w-4xl mb-10">
+            <div class="flex items-center justify-between relative">
+                <div class="absolute left-0 top-1/2 transform -translate-y-1/2 w-full h-1 bg-royal-700 -z-10"></div>
+                
+                <!-- Step 1 -->
+                <div class="flex flex-col items-center cursor-pointer" onclick="goToStep(1)">
+                    <div id="step-indicator-1" class="w-10 h-10 rounded-full bg-royal-900 border-2 border-gold-400 flex items-center justify-center text-gold-400 font-bold z-10 transition-all duration-300 shadow-[0_0_15px_rgba(251,191,36,0.5)]">1</div>
+                    <span class="mt-2 text-sm text-gold-400 font-semibold">Upload</span>
+                </div>
+
+                <!-- Step 2 -->
+                <div class="flex flex-col items-center cursor-pointer" onclick="goToStep(2)">
+                    <div id="step-indicator-2" class="w-10 h-10 rounded-full bg-royal-800 border-2 border-gray-600 flex items-center justify-center text-gray-400 font-bold z-10 transition-all duration-300">2</div>
+                    <span class="mt-2 text-sm text-gray-400">Configure</span>
+                </div>
+
+                <!-- Step 3 -->
+                <div class="flex flex-col items-center cursor-pointer" onclick="goToStep(3)">
+                    <div id="step-indicator-3" class="w-10 h-10 rounded-full bg-royal-800 border-2 border-gray-600 flex items-center justify-center text-gray-400 font-bold z-10 transition-all duration-300">3</div>
+                    <span class="mt-2 text-sm text-gray-400">Generate</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dynamic Content Area -->
+        <div class="w-full max-w-5xl glass-panel rounded-2xl p-8 min-h-[500px] relative overflow-hidden">
+            
+            <!-- Step 1: Upload -->
+            <div id="step-1" class="step-content transition-opacity duration-500">
+                <div class="flex flex-col items-center justify-center h-full py-10">
+                    <div class="w-full max-w-xl p-10 border-2 border-dashed border-royal-700 rounded-xl bg-royal-900/50 hover:bg-royal-800/50 hover:border-gold-400/50 transition-all group cursor-pointer text-center relative" id="drop-zone">
+                        <!-- Added 'multiple' attribute here -->
+                        <input type="file" id="file-upload" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept=".pdf,.docx,.txt" multiple onchange="handleFileSelect(this)">
+                        
+                        <div class="mb-4">
+                            <i class="fa-solid fa-cloud-arrow-up text-5xl text-gray-400 group-hover:text-gold-400 transition-colors"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-white mb-2">Drag & Drop Syllabus or Previous Papers</h3>
+                        <p class="text-gray-400 text-sm mb-6">Supported formats: PDF, DOCX, TXT (Multiple files allowed)</p>
+                        <button class="bg-royal-700 text-white px-6 py-2 rounded-full font-semibold group-hover:bg-gold-500 group-hover:text-royal-900 transition-all">Browse Files</button>
+                    </div>
+                    
+                    <!-- New File List Container -->
+                    <div id="file-list-container" class="mt-6 hidden w-full max-w-xl space-y-2 max-h-48 overflow-y-auto custom-scrollbar pr-2">
+                        <!-- File items injected here -->
+                    </div>
+
+                    <div id="analyze-action" class="mt-6 hidden w-full max-w-xl justify-end">
+                        <button onclick="simulateAnalysis()" class="bg-gold-500 text-royal-900 hover:bg-gold-400 font-bold px-6 py-2 rounded-lg flex items-center gap-2 transition shadow-lg">
+                            ANALYZE FILES <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </div>
+
+                    <!-- Loader (Hidden by default) -->
+                    <div id="analysis-loader" class="hidden flex-col items-center mt-8">
+                        <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12 mb-4"></div>
+                        <p class="text-gold-400 animate-pulse">AI is reading documents & extracting topics...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2: Configure -->
+            <div id="step-2" class="step-content hidden opacity-0 transition-opacity duration-500">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <!-- Left: Basic Info -->
+                    <div>
+                        <h3 class="text-xl font-serif text-gold-400 mb-6 border-b border-royal-700 pb-2">Paper Details</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-gray-400 text-sm mb-1">Subject Name</label>
+                                <input type="text" id="subject-name" class="w-full bg-royal-900 border border-royal-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-gold-400 transition" placeholder="e.g. Artificial Intelligence">
+                            </div>
+                            <div>
+                                <label class="block text-gray-400 text-sm mb-1">Duration (Hours)</label>
+                                <select class="w-full bg-royal-900 border border-royal-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-gold-400 transition">
+                                    <option>1 Hour</option>
+                                    <option>2 Hours</option>
+                                    <option selected>3 Hours</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-gray-400 text-sm mb-1">Total Marks (Auto-Calculated)</label>
+                                <input type="number" id="total-marks" class="w-full bg-royal-800/50 border border-royal-700 rounded-lg px-4 py-2 text-gray-300 cursor-not-allowed focus:outline-none" value="100" readonly>
+                            </div>
+                            <div>
+                                <label class="block text-gray-400 text-sm mb-1">Difficulty Level</label>
+                                <div class="flex gap-2">
+                                    <button id="btn-easy" onclick="setDifficulty('easy')" class="flex-1 py-2 rounded-lg bg-royal-800 border border-royal-700 hover:border-green-400 text-gray-400 text-sm transition">Easy</button>
+                                    <button id="btn-medium" onclick="setDifficulty('medium')" class="flex-1 py-2 rounded-lg bg-royal-800 border border-gold-400 text-gold-400 text-sm transition shadow-[0_0_10px_rgba(251,191,36,0.2)]">Medium</button>
+                                    <button id="btn-hard" onclick="setDifficulty('hard')" class="flex-1 py-2 rounded-lg bg-royal-800 border border-royal-700 hover:border-red-400 text-gray-400 text-sm transition">Hard</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Question Structure -->
+                    <div>
+                        <h3 class="text-xl font-serif text-gold-400 mb-6 border-b border-royal-700 pb-2">Question Structure</h3>
+                        <div class="space-y-5">
+                            
+                            <!-- Section A -->
+                            <div class="bg-royal-800/50 p-4 rounded-lg border border-royal-700">
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="font-bold text-white">Part A (Short Answer)</span>
+                                    <span class="text-xs text-gold-400">2 Marks each</span>
+                                </div>
+                                <div class="flex items-center gap-4">
+                                    <input type="range" id="slider-2marks" min="0" max="20" value="10" class="w-full accent-gold-400 h-2 bg-royal-900 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('count-2marks', this.value)">
+                                    <span class="bg-royal-900 px-3 py-1 rounded text-white font-mono" id="count-2marks">10</span>
+                                </div>
+                            </div>
+
+                            <!-- Section B -->
+                            <div class="bg-royal-800/50 p-4 rounded-lg border border-royal-700">
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="font-bold text-white">Part B (Medium Answer)</span>
+                                    <span class="text-xs text-gold-400">5 Marks each</span>
+                                </div>
+                                <div class="flex items-center gap-4">
+                                    <input type="range" id="slider-5marks" min="0" max="10" value="4" class="w-full accent-gold-400 h-2 bg-royal-900 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('count-5marks', this.value)">
+                                    <span class="bg-royal-900 px-3 py-1 rounded text-white font-mono" id="count-5marks">4</span>
+                                </div>
+                            </div>
+
+                            <!-- Section C -->
+                            <div class="bg-royal-800/50 p-4 rounded-lg border border-royal-700">
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="font-bold text-white">Part C (Long Answer)</span>
+                                    <span class="text-xs text-gold-400">10 Marks each</span>
+                                </div>
+                                <div class="flex items-center gap-4">
+                                    <input type="range" id="slider-10marks" min="0" max="10" value="6" class="w-full accent-gold-400 h-2 bg-royal-900 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('count-10marks', this.value)">
+                                    <span class="bg-royal-900 px-3 py-1 rounded text-white font-mono" id="count-10marks">6</span>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-8 flex justify-end">
+                    <button onclick="generatePaper()" class="bg-gradient-to-r from-gold-600 to-gold-400 text-royal-900 font-bold px-8 py-3 rounded-full shadow-lg hover:shadow-gold-400/30 hover:scale-105 transition transform flex items-center gap-2">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> GENERATE PAPER
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 3: Preview & Download -->
+            <div id="step-3" class="step-content hidden opacity-0 transition-opacity duration-500 h-full flex flex-col">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-serif text-white">Preview</h3>
+                    <div class="flex gap-2">
+                        <button onclick="downloadPDF()" class="bg-white text-royal-900 px-4 py-2 rounded-lg text-sm font-bold hover:bg-gray-100 transition shadow">
+                            <i class="fa-solid fa-file-pdf mr-1"></i> Download PDF
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Paper Viewport -->
+                <div class="flex-grow bg-gray-600 rounded-lg overflow-hidden relative overflow-y-auto p-4 flex justify-center custom-scrollbar">
+                    
+                    <!-- The Actual Paper HTML to be printed -->
+                    <div id="paper-content" class="paper-preview w-full max-w-[210mm] min-h-[297mm]">
+                        <div class="text-center border-b-2 border-black pb-4 mb-6">
+                            <h2 class="text-xl font-bold uppercase" id="preview-subject">Machine Learning</h2>
+                            <div class="flex justify-between mt-4 text-sm font-semibold">
+                                <span>Time: 3 Hours</span>
+                                <span>Max Marks: <span id="preview-marks">100</span></span>
+                            </div>
+                        </div>
+
+                        <!-- Dynamic Questions Container -->
+                        <div id="questions-container">
+                            <!-- Sections will be injected here by JS -->
+                        </div>
+                        
+                        <div class="text-center mt-10 pt-4 border-t border-gray-300 text-sm italic">
+                            *** End of Question Paper ***
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <footer class="glass-panel mt-auto py-6">
+        <div class="text-center text-gray-400 text-sm">
+            <p>&copy; 2024 AI Question Paper Generator. Built for the Hackathon.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Mock Data Dictionary
+        const subjectDatabase = {
+            'machine learning': {
+                short: [
+                    "Define Supervised Learning.",
+                    "What is the difference between Bias and Variance?",
+                    "Explain the concept of Overfitting.",
+                    "What is a Confusion Matrix?",
+                    "Define Precision and Recall.",
+                    "What is the purpose of a Validation Set?",
+                    "Explain K-Fold Cross Validation.",
+                    "What is a Neuron in Neural Networks?",
+                    "Define Gradient Descent.",
+                    "What is the role of an Activation Function?"
+                ],
+                medium: [
+                    "Explain the K-Nearest Neighbors (KNN) algorithm with an example.",
+                    "Discuss the different types of Kernels used in SVM.",
+                    "Differentiate between Bagging and Boosting ensemble methods.",
+                    "Explain the architecture of a Convolutional Neural Network (CNN).",
+                    "What is Principal Component Analysis (PCA)? Explain its steps."
+                ],
+                long: [
+                    "Explain the Backpropagation algorithm in detail with mathematical derivations.",
+                    "Compare and contrast Decision Trees and Random Forests. Discuss their advantages and disadvantages.",
+                    "Describe the working of Recurrent Neural Networks (RNN) and Long Short-Term Memory (LSTM) networks.",
+                    "Explain the Support Vector Machine (SVM) algorithm for linear and non-linear classification.",
+                    "Discuss the process of Natural Language Processing (NLP) pipeline with examples.",
+                    "Explain unsupervised learning techniques: K-Means Clustering and Hierarchical Clustering."
+                ]
+            }
+            // You can add more specific subjects here if needed
+        };
+
+        // Function to generate questions dynamically based on subject
+        function getMockQuestions(subjectInput) {
+            const subject = subjectInput ? subjectInput.trim() : "General";
+            const lowerSubject = subject.toLowerCase();
+
+            // 1. Check if we have specific questions for this subject in our "database"
+            for (const key in subjectDatabase) {
+                if (lowerSubject.includes(key)) {
+                    return subjectDatabase[key];
+                }
+            }
+
+            // 2. If not, return Generic Templates filled with the Subject Name
+            // This ensures the questions always "look" related to the subject user entered.
+            return {
+                short: [
+                    `Define ${subject}.`,
+                    `What are the key characteristics of ${subject}?`,
+                    `Explain the basic terminology used in ${subject}.`,
+                    `What is the scope and importance of ${subject}?`,
+                    `List the major advantages and disadvantages of ${subject}.`,
+                    `What are the fundamental principles of ${subject}?`,
+                    `Define the concept of efficiency in the context of ${subject}.`,
+                    `What are the primary components of ${subject}?`,
+                    `Explain the significance of ${subject} in the modern world.`,
+                    `State the fundamental laws or rules governing ${subject}.`
+                ],
+                medium: [
+                    `Explain the historical development and evolution of ${subject}.`,
+                    `Discuss the major challenges and limitations in the field of ${subject}.`,
+                    `Compare and contrast different approaches or theories in ${subject}.`,
+                    `Explain the practical applications of ${subject} in real-life scenarios.`,
+                    `Discuss the future trends and potential advancements in ${subject}.`,
+                    `Describe the standard procedures followed in ${subject}.`
+                ],
+                long: [
+                    `Explain the theoretical framework of ${subject} in detail with suitable examples.`,
+                    `Discuss the comprehensive impact of ${subject} on society, technology, or the environment.`,
+                    `Describe the detailed process or methodology involved in ${subject} analysis.`,
+                    `Explain the various methodologies and techniques used in ${subject}.`,
+                    `Critically analyze the core concepts and advanced theories of ${subject}.`,
+                    `Elaborate on significant case studies or major events relevant to ${subject}.`
+                ]
+            };
+        }
+
+        let currentStep = 1;
+        let uploadedFiles = []; // Store multiple files
+        let currentDifficulty = 'medium';
+
+        function goToStep(step) {
+            // Validate before moving
+            if(step > currentStep && step !== currentStep + 1) return;
+            
+            // UI Updates
+            document.querySelectorAll('.step-content').forEach(el => {
+                el.classList.add('hidden', 'opacity-0');
+                el.classList.remove('opacity-100');
+            });
+
+            const target = document.getElementById(`step-${step}`);
+            target.classList.remove('hidden');
+            // Small timeout for fade effect
+            setTimeout(() => target.classList.add('opacity-100'), 50);
+
+            // Step Indicator Updates
+            updateIndicators(step);
+            
+            currentStep = step;
+        }
+
+        function updateIndicators(step) {
+            for(let i=1; i<=3; i++) {
+                const indicator = document.getElementById(`step-indicator-${i}`);
+                const label = indicator.nextElementSibling;
+                
+                if (i <= step) {
+                    indicator.classList.remove('bg-royal-800', 'border-gray-600', 'text-gray-400');
+                    indicator.classList.add('bg-royal-900', 'border-gold-400', 'text-gold-400', 'shadow-[0_0_15px_rgba(251,191,36,0.5)]');
+                    label.classList.add('text-gold-400');
+                    label.classList.remove('text-gray-400');
+                } else {
+                    indicator.classList.add('bg-royal-800', 'border-gray-600', 'text-gray-400');
+                    indicator.classList.remove('bg-royal-900', 'border-gold-400', 'text-gold-400', 'shadow-[0_0_15px_rgba(251,191,36,0.5)]');
+                    label.classList.remove('text-gold-400');
+                    label.classList.add('text-gray-400');
+                }
+            }
+        }
+
+        function handleFileSelect(input) {
+            if (input.files && input.files.length > 0) {
+                const newFiles = Array.from(input.files);
+                uploadedFiles = uploadedFiles.concat(newFiles);
+                updateFileListUI();
+            }
+        }
+
+        function updateFileListUI() {
+            const container = document.getElementById('file-list-container');
+            const dropZone = document.getElementById('drop-zone');
+            const analyzeBtn = document.getElementById('analyze-action');
+
+            container.innerHTML = '';
+            
+            if (uploadedFiles.length > 0) {
+                container.classList.remove('hidden');
+                analyzeBtn.classList.remove('hidden');
+                analyzeBtn.classList.add('flex');
+                dropZone.classList.add('border-gold-400', 'bg-royal-800/30'); // Highlight active state
+            }
+
+            uploadedFiles.forEach((file, index) => {
+                const div = document.createElement('div');
+                div.className = "bg-royal-800 rounded-lg p-3 flex items-center justify-between border border-royal-600";
+                div.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <i class="fa-solid fa-file-pdf text-red-500 text-xl"></i>
+                        <div>
+                            <p class="text-white text-sm font-medium truncate max-w-[200px]">${file.name}</p>
+                            <p class="text-xs text-gray-400">${(file.size / 1024).toFixed(1)} KB</p>
+                        </div>
+                    </div>
+                    <button onclick="removeFile(${index})" class="text-gray-400 hover:text-red-400 transition">
+                        <i class="fa-solid fa-times"></i>
+                    </button>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function removeFile(index) {
+            uploadedFiles.splice(index, 1);
+            updateFileListUI();
+        }
+
+        async function simulateAnalysis() {
+            if (uploadedFiles.length === 0) return;
+
+            document.getElementById('file-list-container').classList.add('hidden');
+            document.getElementById('analyze-action').classList.add('hidden');
+            document.getElementById('drop-zone').classList.add('hidden'); 
+            
+            document.getElementById('analysis-loader').classList.remove('hidden');
+            document.getElementById('analysis-loader').classList.add('flex');
+
+            // Wait a moment for UI to update before heavy processing
+            setTimeout(async () => {
+                // No automatic subject detection. User inputs manually.
+
+                document.getElementById('analysis-loader').classList.add('hidden');
+                document.getElementById('analysis-loader').classList.remove('flex');
+                
+                // Reset step 1 view
+                document.getElementById('drop-zone').classList.remove('hidden');
+                
+                goToStep(2);
+            }, 1500); 
+        }
+
+        function setDifficulty(level) {
+            currentDifficulty = level;
+            const levels = ['easy', 'medium', 'hard'];
+            
+            levels.forEach(l => {
+                const btn = document.getElementById(`btn-${l}`);
+                // Base classes for inactive state
+                btn.className = "flex-1 py-2 rounded-lg bg-royal-800 border border-royal-700 text-gray-400 text-sm transition";
+                
+                // Add specific hover effects for inactive state
+                if (l === 'easy') btn.classList.add('hover:border-green-400', 'hover:text-green-400');
+                if (l === 'medium') btn.classList.add('hover:border-gold-400', 'hover:text-gold-400');
+                if (l === 'hard') btn.classList.add('hover:border-red-400', 'hover:text-red-400');
+
+                // Apply Active State
+                if (l === level) {
+                    btn.className = "flex-1 py-2 rounded-lg bg-royal-800 border border-gold-400 text-gold-400 text-sm transition shadow-[0_0_10px_rgba(251,191,36,0.2)]";
+                }
+            });
+        }
+
+        function updateSlider(displayId, value) {
+            document.getElementById(displayId).innerText = value;
+            calculateTotalMarks();
+        }
+
+        function calculateTotalMarks() {
+            const q2 = parseInt(document.getElementById('slider-2marks').value) || 0;
+            const q5 = parseInt(document.getElementById('slider-5marks').value) || 0;
+            const q10 = parseInt(document.getElementById('slider-10marks').value) || 0;
+            
+            const total = (q2 * 2) + (q5 * 5) + (q10 * 10);
+            document.getElementById('total-marks').value = total;
+        }
+
+        function generatePaper() {
+            const subject = document.getElementById('subject-name').value || "Subject";
+            const marks = document.getElementById('total-marks').value;
+            
+            // Get Config Counts
+            const q2 = parseInt(document.getElementById('count-2marks').innerText);
+            const q5 = parseInt(document.getElementById('count-5marks').innerText);
+            const q10 = parseInt(document.getElementById('count-10marks').innerText);
+
+            // Update Preview DOM
+            document.getElementById('preview-subject').innerText = subject;
+            document.getElementById('preview-marks').innerText = marks;
+
+            // Clear previous questions
+            const container = document.getElementById('questions-container');
+            container.innerHTML = '';
+
+            // Get Dynamic Questions
+            const questionsSource = getMockQuestions(subject);
+
+            // Define Section Structure
+            const sections = [
+                { id: 'short', marks: 2, title: 'Short Answer', count: q2, source: questionsSource.short },
+                { id: 'medium', marks: 5, title: 'Medium Answer', count: q5, source: questionsSource.medium },
+                { id: 'long', marks: 10, title: 'Long Answer', count: q10, source: questionsSource.long }
+            ];
+
+            const partLabels = ['A', 'B', 'C'];
+            let activePartIndex = 0;
+            let questionNumber = 1;
+
+            sections.forEach(section => {
+                // Logic: Only display section if question count > 0
+                if (section.count > 0) {
+                    const partLabel = partLabels[activePartIndex];
+                    
+                    // Create Section Wrapper
+                    const sectionDiv = document.createElement('div');
+                    sectionDiv.className = 'mb-6';
+
+                    // Create Section Header
+                    sectionDiv.innerHTML = `
+                        <h3 class="font-bold text-lg mb-2 border-b border-gray-300 inline-block">Part ${partLabel} - (${section.title})</h3>
+                        <p class="italic text-sm mb-4">Answer all questions. Each question carries ${section.marks} marks.</p>
+                    `;
+
+                    // Create List
+                    const ol = document.createElement('ol');
+                    ol.className = 'list-decimal pl-5 space-y-3';
+                    ol.start = questionNumber; // Use standard html attribute for start number
+
+                    // Get Random Questions
+                    // If source array is smaller than requested count (for templates), we reuse or cycle them. 
+                    // But here we'll just slice or duplicate if needed. 
+                    // For templates, the array is small, so let's pick randomly.
+                    
+                    for (let i = 0; i < section.count; i++) {
+                        const li = document.createElement('li');
+                        li.className = 'pl-2';
+                        li.value = questionNumber; 
+                        
+                        // Pick random question from source
+                        const randomIndex = Math.floor(Math.random() * section.source.length);
+                        li.innerText = section.source[randomIndex];
+                        
+                        ol.appendChild(li);
+                        questionNumber++;
+                    }
+
+                    sectionDiv.appendChild(ol);
+                    container.appendChild(sectionDiv);
+
+                    // Move to next Part label (A -> B -> C)
+                    activePartIndex++;
+                }
+            });
+
+            goToStep(3);
+        }
+
+        function downloadPDF() {
+            const element = document.getElementById('paper-content');
+            
+            const opt = {
+                margin:       [0.5, 0.5, 0.5, 0.5], // Standard margin 0.5 inch
+                filename:     'generated-question-paper.pdf',
+                image:        { type: 'jpeg', quality: 0.98 },
+                // scale: 2 for high res, scrollY: 0 forces it to capture from top even if scrolled down
+                html2canvas:  { scale: 2, scrollY: 0 }, 
+                jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+            };
+            
+            html2pdf().set(opt).from(element).save();
+        }
+    </script>
+</body>
+</html>
